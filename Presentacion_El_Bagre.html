@@ -11,7 +11,7 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght=0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght=0,300..800;1,300..800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
     
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -42,105 +42,144 @@
             transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; opacity: 0; transform: scale(0.98); visibility: hidden; z-index: 1;
+            overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch;
         }
         .slide.active { opacity: 1; transform: scale(1); pointer-events: auto; visibility: visible; z-index: 10; }
-        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar { width: 4px; }
+        @media (min-width: 768px) { ::-webkit-scrollbar { width: 6px; } }
         ::-webkit-scrollbar-track { background: #F5ECE1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb { background: #DCC7AD; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #C2593F; }
+        
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* ----- CONFIGURACIÓN PARA EXPORTAR A PDF ----- */
+        @media print {
+            @page { size: landscape; margin: 0; }
+            body, html, .h-screen, #main-presentation { 
+                height: auto !important; overflow: visible !important; background: white !important; 
+            }
+            /* Ocultar barra lateral y controles inferiores */
+            #notes-sidebar, .h-14, .md\:h-16, button { 
+                display: none !important; 
+            }
+            /* Quitar sombras y bordes del contenedor */
+            #slides-wrapper { 
+                box-shadow: none !important; border: none !important; height: auto !important; max-height: none !important; aspect-ratio: auto !important;
+            }
+            /* Mostrar todas las diapositivas, una por página */
+            .slide {
+                position: relative !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                transform: none !important;
+                height: 100vh !important;
+                width: 100vw !important;
+                page-break-after: always !important;
+                break-after: page !important;
+            }
+            .slide:last-child {
+                page-break-after: auto !important;
+                break-after: auto !important;
+            }
+        }
     </style>
 </head>
 <body class="font-sans antialiased selection:bg-terracotta-200 selection:text-terracotta-700">
 
-    <div class="flex h-screen w-screen overflow-hidden bg-sand-100">
+    <div class="flex h-screen w-screen overflow-hidden bg-sand-100 relative">
         
         <!-- SIDEBAR DE NOTAS -->
-        <aside id="notes-sidebar" class="w-96 bg-sand-50 border-r border-sand-200 flex flex-col shadow-lg z-20 transition-all duration-300 ease-in-out shrink-0 relative">
-            <div class="p-6 border-b border-sand-200 bg-white/50 backdrop-blur">
-                <div class="flex items-center space-x-2 text-terracotta-600 mb-1">
-                    <i data-lucide="book-open-text" class="w-5 h-5"></i>
-                    <h2 class="font-sans font-bold text-sm tracking-widest uppercase">Notas del orador</h2>
+        <aside id="notes-sidebar" class="absolute md:relative z-50 w-full md:w-96 h-full bg-sand-50 border-r border-sand-200 flex flex-col shadow-2xl md:shadow-lg transition-all duration-300 ease-in-out shrink-0 transform -translate-x-full">
+            <div class="p-4 md:p-6 border-b border-sand-200 bg-white/50 backdrop-blur flex justify-between items-center">
+                <div>
+                    <div class="flex items-center space-x-2 text-terracotta-600 mb-1">
+                        <i data-lucide="book-open-text" class="w-5 h-5"></i>
+                        <h2 class="font-sans font-bold text-sm tracking-widest uppercase">Notas del orador</h2>
+                    </div>
+                    <p class="text-xs text-charcoal-light opacity-70">Guía de facilitación - Milton</p>
                 </div>
-                <p class="text-xs text-charcoal-light opacity-70">Guía de facilitación - Milton</p>
+                <button id="btn-close-notes-mobile" class="md:hidden p-2 text-charcoal bg-sand-100 rounded-full hover:bg-sand-200">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
             </div>
             
-            <div class="flex-grow overflow-y-auto p-6" id="notes-container">
-                <!-- Contenido Dinámico JS -->
-            </div>
+            <div class="flex-grow overflow-y-auto p-5 md:p-6" id="notes-container"></div>
             
-            <div class="p-4 border-t border-sand-200 bg-sand-100/50 text-xs text-charcoal-light flex justify-between items-center">
+            <div class="p-4 border-t border-sand-200 bg-sand-100/50 text-xs text-charcoal-light flex justify-between items-center pb-6 md:pb-4">
                 <span>Tiempo transcurrido</span>
                 <span class="font-mono text-terracotta-600 font-bold text-sm" id="timer">00:00</span>
             </div>
         </aside>
 
         <!-- ÁREA CENTRAL PRESENTACIÓN -->
-        <main id="main-presentation" class="flex-1 flex flex-col relative bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] min-w-0">
+        <main id="main-presentation" class="flex-1 flex flex-col relative bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] min-w-0 h-full">
             
             <!-- Contenedor Slides -->
-            <div class="flex-grow flex items-center justify-center p-4 md:p-8 relative z-10">
-                <div class="w-full max-w-6xl aspect-[16/9] bg-white shadow-2xl rounded-xl overflow-hidden relative border border-sand-200" id="slides-wrapper">
+            <div class="flex-grow flex items-center justify-center p-2 md:p-8 relative z-10 overflow-hidden">
+                <div class="w-full h-full md:h-auto md:max-w-6xl md:aspect-[16/9] md:max-h-[85vh] bg-white shadow-xl md:shadow-2xl rounded-xl overflow-hidden relative border border-sand-200" id="slides-wrapper">
                     
                     <!-- SLIDE 1: PORTADA -->
                     <div class="slide active" id="slide-0">
                         <div class="absolute inset-0 bg-gradient-to-br from-sand-50 via-white to-sand-100"></div>
-                        <div class="relative h-full flex flex-col justify-center items-center text-center px-16">
-                            <h1 class="font-serif text-5xl md:text-6xl text-charcoal leading-tight mb-6">
+                        <div class="relative min-h-full flex flex-col justify-center items-center text-center px-4 md:px-16 py-10">
+                            <h1 class="font-serif text-4xl md:text-6xl text-charcoal leading-tight mb-4 md:mb-6">
                                 Mapeo sistémico en <br/><span class="text-terracotta-600 italic">El Bagre</span>
                             </h1>
-                            <p class="font-sans text-xl text-charcoal-light max-w-2xl font-light mb-8">
+                            <p class="font-sans text-base md:text-xl text-charcoal-light max-w-2xl font-light mb-8">
                                 Conversaciones, fuerzas y oportunidades para la construcción de paz cotidiana.
                             </p>
-                            <div class="flex space-x-4">
-                                <span class="px-5 py-2 rounded-full bg-olive-50 text-olive-700 font-medium border border-olive-100 shadow-sm text-sm">Corporación SEHPAZ</span>
-                                <span class="px-5 py-2 rounded-full bg-terracotta-50 text-terracotta-700 font-medium border border-terracotta-100 shadow-sm text-sm">Co-inspira</span>
+                            <div class="flex flex-col sm:flex-row gap-3 sm:space-x-4 w-full sm:w-auto px-4 sm:px-0">
+                                <span class="px-4 md:px-5 py-2 rounded-full bg-olive-50 text-olive-700 font-medium border border-olive-100 shadow-sm text-xs md:text-sm">Corporación SEHPAZ</span>
+                                <span class="px-4 md:px-5 py-2 rounded-full bg-terracotta-50 text-terracotta-700 font-medium border border-terracotta-100 shadow-sm text-xs md:text-sm">Co-inspira</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- SLIDE 2: ECOSISTEMA (Rediseñada para evitar vacío grande) -->
+                    <!-- SLIDE 2: ECOSISTEMA -->
                     <div class="slide bg-white" id="slide-1">
-                        <div class="relative h-full flex flex-col p-12 justify-center">
-                            <span class="font-sans text-xs tracking-[0.15em] text-terracotta-600 uppercase font-bold text-center block mb-2">Bloque 2 • Contexto</span>
-                            <h2 class="font-serif text-4.5xl md:text-5xl text-charcoal text-center mb-12">El ecosistema: quiénes somos</h2>
-                            <div class="grid grid-cols-3 gap-8 max-w-5xl mx-auto">
-                                <div class="bg-sand-50 rounded-2xl p-8 border border-sand-200 flex flex-col items-center text-center shadow-md min-h-[300px] justify-center">
-                                    <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm text-olive-600 mb-6 border border-sand-200"><i data-lucide="network" class="w-8 h-8"></i></div>
-                                    <h3 class="font-serif text-2xl text-charcoal mb-4">Red ECO</h3>
-                                    <p class="text-sm md:text-base text-charcoal-light leading-relaxed">Red de organizaciones y personas unidas para la construcción de paz en Colombia.</p>
+                        <div class="relative min-h-full flex flex-col p-5 md:p-12 justify-start md:justify-center">
+                            <span class="font-sans text-[10px] md:text-xs tracking-[0.15em] text-terracotta-600 uppercase font-bold text-center block mb-2 mt-4 md:mt-0">Bloque 2 • Contexto</span>
+                            <h2 class="font-serif text-3xl md:text-5xl text-charcoal text-center mb-6 md:mb-12">El ecosistema: quiénes somos</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 max-w-5xl mx-auto w-full pb-8 md:pb-0">
+                                <div class="bg-sand-50 rounded-xl md:rounded-2xl p-5 md:p-8 border border-sand-200 flex flex-col items-center text-center shadow-sm md:shadow-md md:min-h-[280px] justify-center">
+                                    <div class="w-12 h-12 md:w-20 md:h-20 bg-white rounded-full flex items-center justify-center shadow-sm text-olive-600 mb-3 md:mb-6 border border-sand-200"><i data-lucide="network" class="w-6 h-6 md:w-8 md:h-8"></i></div>
+                                    <h3 class="font-serif text-xl md:text-2xl text-charcoal mb-2 md:mb-4">Red ECO</h3>
+                                    <p class="text-sm md:text-base text-charcoal-light leading-relaxed">Red de organizaciones y personas unidas para la construcción de paz.</p>
                                 </div>
-                                <div class="bg-sand-50 rounded-2xl p-8 border border-sand-200 flex flex-col items-center text-center shadow-md min-h-[300px] justify-center relative overflow-hidden">
-                                    <div class="absolute top-0 left-0 w-full h-1.5 bg-terracotta-500"></div>
-                                    <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm text-olive-600 mb-6 border border-sand-200"><i data-lucide="users" class="w-8 h-8"></i></div>
-                                    <h3 class="font-serif text-2xl text-charcoal mb-4">SEHPAZ</h3>
-                                    <p class="text-sm md:text-base text-charcoal-light leading-relaxed">Liderazgo histórico, convocatoria y legitimidad territorial en el Bajo Cauca.</p>
+                                <div class="bg-sand-50 rounded-xl md:rounded-2xl p-5 md:p-8 border border-sand-200 flex flex-col items-center text-center shadow-sm md:shadow-md md:min-h-[280px] justify-center relative overflow-hidden">
+                                    <div class="absolute top-0 left-0 w-full h-1 bg-terracotta-500"></div>
+                                    <div class="w-12 h-12 md:w-20 md:h-20 bg-white rounded-full flex items-center justify-center shadow-sm text-olive-600 mb-3 md:mb-6 border border-sand-200"><i data-lucide="users" class="w-6 h-6 md:w-8 md:h-8"></i></div>
+                                    <h3 class="font-serif text-xl md:text-2xl text-charcoal mb-2 md:mb-4">SEHPAZ</h3>
+                                    <p class="text-sm md:text-base text-charcoal-light leading-relaxed">Liderazgo histórico, convocatoria y legitimidad territorial.</p>
                                 </div>
-                                <div class="bg-sand-50 rounded-2xl p-8 border border-sand-200 flex flex-col items-center text-center shadow-md min-h-[300px] justify-center">
-                                    <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm text-terracotta-600 mb-6 border border-sand-200"><i data-lucide="compass" class="w-8 h-8"></i></div>
-                                    <h3 class="font-serif text-2xl text-charcoal mb-4">Facilitación</h3>
-                                    <p class="text-sm md:text-base text-charcoal-light leading-relaxed">Acompañamiento metodológico en territorio (Milton, Ángela & Alejandra / CreAmos).</p>
+                                <div class="bg-sand-50 rounded-xl md:rounded-2xl p-5 md:p-8 border border-sand-200 flex flex-col items-center text-center shadow-sm md:shadow-md md:min-h-[280px] justify-center">
+                                    <div class="w-12 h-12 md:w-20 md:h-20 bg-white rounded-full flex items-center justify-center shadow-sm text-terracotta-600 mb-3 md:mb-6 border border-sand-200"><i data-lucide="compass" class="w-6 h-6 md:w-8 md:h-8"></i></div>
+                                    <h3 class="font-serif text-xl md:text-2xl text-charcoal mb-2 md:mb-4">Facilitación</h3>
+                                    <p class="text-sm md:text-base text-charcoal-light leading-relaxed">Acompañamiento metodológico (Alejandra, Ángela y Milton).</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- SLIDE 3: LA INSPIRACIÓN (Incluye foto de territorio de manera equilibrada) -->
+                    <!-- SLIDE 3: LA INSPIRACIÓN -->
                     <div class="slide bg-olive-700 text-white" id="slide-2">
                         <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
-                        <div class="relative h-full flex flex-row">
-                            <div class="w-1/2 p-12 flex flex-col justify-center">
-                                <span class="font-sans text-xs tracking-[0.15em] text-sand-300 uppercase font-bold mb-3">La inspiración</span>
-                                <h2 class="font-serif text-4.5xl md:text-5xl leading-tight mb-8">El Tambo y el Cauca</h2>
-                                <p class="text-base md:text-lg font-light leading-relaxed mb-6">Un mapa sistémico no es un diagnóstico inerte. En el Cauca, permitió a la comunidad verse a sí misma y descubrir sus propios poderes.</p>
-                                <ul class="space-y-4 text-sand-100">
-                                    <li class="flex items-center gap-3"><i data-lucide="sprout" class="text-terracotta-400 w-5 h-5"></i><span>Nacimiento de la <strong>Fundación CreAmos</strong></span></li>
-                                    <li class="flex items-center gap-3"><i data-lucide="building" class="text-terracotta-400 w-5 h-5"></i><span>Construcción del <strong>SOLE Lab</strong></span></li>
-                                    <li class="flex items-center gap-3"><i data-lucide="heart-handshake" class="text-terracotta-400 w-5 h-5"></i><span>Iniciativas de mujeres, agua y jóvenes financiadas</span></li>
+                        <div class="relative min-h-full flex flex-col md:flex-row">
+                            <div class="w-full md:w-1/2 p-6 md:p-12 flex flex-col justify-start md:justify-center mt-4 md:mt-0">
+                                <span class="font-sans text-[10px] md:text-xs tracking-[0.15em] text-sand-300 uppercase font-bold mb-2 md:mb-3">La inspiración</span>
+                                <h2 class="font-serif text-3xl md:text-5xl leading-tight mb-4 md:mb-8">El Tambo y Cauca</h2>
+                                <p class="text-sm md:text-lg font-light leading-relaxed mb-6">Un mapa sistémico no es un diagnóstico inerte. Permitió a la comunidad verse a sí misma y descubrir sus poderes.</p>
+                                <ul class="space-y-3 md:space-y-4 text-sand-100 text-sm md:text-base mb-6 md:mb-0">
+                                    <li class="flex items-center gap-3"><i data-lucide="sprout" class="text-terracotta-400 w-5 h-5 shrink-0"></i><span>Nacimiento de la <strong>Fundación CreAmos</strong></span></li>
+                                    <li class="flex items-center gap-3"><i data-lucide="building" class="text-terracotta-400 w-5 h-5 shrink-0"></i><span>Construcción del <strong>SOLE Lab</strong></span></li>
+                                    <li class="flex items-center gap-3"><i data-lucide="heart-handshake" class="text-terracotta-400 w-5 h-5 shrink-0"></i><span>Iniciativas locales financiadas</span></li>
                                 </ul>
                             </div>
-                            <div class="w-1/2 h-full relative overflow-hidden flex items-center justify-center p-8 bg-olive-800">
-                                <div class="relative w-full h-full max-h-[85%] rounded-xl overflow-hidden shadow-2xl border-4 border-white/25 flex items-center justify-center bg-olive-900">
-                                    <img src="inspiraciones_territorio.png" alt="Inspiraciones del Territorio en Cauca" class="object-cover w-full h-full" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&q=80&w=1200'; this.insertAdjacentHTML('afterend', '<div class=\'absolute inset-0 bg-black/40 flex items-center justify-center text-xs text-white p-4 text-center\'>Para visualizar tu foto, guarda image_3 como inspiraciones_territorio.png en la misma carpeta del HTML.</div>');">
+                            <div class="w-full md:w-1/2 h-56 md:h-auto relative overflow-hidden flex items-center justify-center p-4 md:p-8 bg-olive-800">
+                                <div class="relative w-full h-full md:max-h-[85%] rounded-xl overflow-hidden shadow-xl md:shadow-2xl border-2 md:border-4 border-white/25 flex items-center justify-center bg-olive-900">
+                                    <img src="inspiraciones_territorio.png" alt="Inspiraciones del Territorio en Cauca" class="object-cover w-full h-full" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&q=80&w=1200'; this.insertAdjacentHTML('afterend', '<div class=\'absolute inset-0 bg-black/40 flex items-center justify-center text-[10px] text-white p-4 text-center\'>Guarda la foto como inspiraciones_territorio.png</div>');">
                                 </div>
                             </div>
                         </div>
@@ -148,10 +187,10 @@
 
                     <!-- SLIDE 4: PROPÓSITO LOCAL -->
                     <div class="slide bg-sand-100" id="slide-3">
-                        <div class="relative h-full flex flex-col items-center justify-center text-center px-16">
-                            <span class="font-sans text-xs tracking-[0.2em] text-terracotta-600 uppercase font-bold mb-6">El propósito local</span>
-                            <i data-lucide="quote" class="w-12 h-12 text-terracotta-300 mx-auto mb-6"></i>
-                            <h2 class="font-serif text-4xl md:text-5xl leading-tight text-charcoal italic max-w-4xl">
+                        <div class="relative min-h-full flex flex-col items-center justify-center text-center px-6 md:px-16 py-10">
+                            <span class="font-sans text-[10px] md:text-xs tracking-[0.2em] text-terracotta-600 uppercase font-bold mb-4 md:mb-6">El propósito local</span>
+                            <i data-lucide="quote" class="w-8 h-8 md:w-12 md:h-12 text-terracotta-300 mx-auto mb-4 md:mb-6"></i>
+                            <h2 class="font-serif text-2xl md:text-5xl leading-relaxed md:leading-tight text-charcoal italic max-w-4xl">
                                 "¿Qué fuerzas y dinámicas influyen en la construcción y el sostenimiento de la <span class="text-terracotta-600 font-bold">paz cotidiana</span> en el municipio de El Bagre, Antioquia?"
                             </h2>
                         </div>
@@ -159,25 +198,25 @@
 
                     <!-- SLIDE 5: SENSIBILIZACIÓN (RELOJ VS NUBE) -->
                     <div class="slide bg-white" id="slide-4">
-                        <div class="relative h-full flex flex-col p-12">
-                            <span class="font-sans text-xs tracking-[0.15em] text-olive-600 uppercase font-bold">Bloque 3 • Sensibilización Sistémica</span>
-                            <h2 class="font-serif text-4xl text-charcoal mt-2 mb-8">Problemas de reloj y problemas de nube</h2>
+                        <div class="relative min-h-full flex flex-col p-5 md:p-12 justify-start md:justify-center">
+                            <span class="font-sans text-[10px] md:text-xs tracking-[0.15em] text-olive-600 uppercase font-bold mt-2 md:mt-0">Bloque 3 • Sensibilización Sistémica</span>
+                            <h2 class="font-serif text-3xl md:text-4xl text-charcoal mt-2 mb-4 md:mb-8">Problemas de reloj y nube</h2>
                             
-                            <div class="flex-grow flex gap-8">
-                                <!-- Botones Izquierda -->
-                                <div class="w-1/3 flex flex-col justify-center space-y-6">
-                                    <button onclick="activateSysType('reloj')" class="sys-btn bg-sand-50 border-2 border-transparent hover:border-terracotta-300 p-4 rounded-xl flex items-center gap-4 transition-all w-full text-left" data-sys="reloj">
-                                        <div class="bg-white p-3 rounded-lg shadow-sm text-charcoal"><i data-lucide="watch"></i></div>
-                                        <div><h4 class="font-bold text-charcoal">El Reloj</h4><p class="text-xs text-charcoal-light">Ronda 1</p></div>
+                            <div class="flex-grow flex flex-col md:flex-row gap-4 md:gap-8 pb-8 md:pb-0">
+                                <!-- Botones Deslizables en Móvil -->
+                                <div class="w-full md:w-1/3 flex flex-row md:flex-col overflow-x-auto md:overflow-visible hide-scroll gap-3 md:gap-0 md:space-y-6 pb-2 md:pb-0 snap-x">
+                                    <button onclick="activateSysType('reloj')" class="sys-btn snap-center shrink-0 w-[140px] md:w-full bg-sand-50 border-2 border-transparent hover:border-terracotta-300 p-3 md:p-4 rounded-xl flex flex-col md:flex-row items-center gap-2 md:gap-4 transition-all text-center md:text-left" data-sys="reloj">
+                                        <div class="bg-white p-2 md:p-3 rounded-lg shadow-sm text-charcoal"><i data-lucide="watch" class="w-5 h-5 md:w-6 md:h-6"></i></div>
+                                        <div><h4 class="font-bold text-charcoal text-sm md:text-base">El Reloj</h4><p class="text-[10px] md:text-xs text-charcoal-light">Ronda 1</p></div>
                                     </button>
-                                    <button onclick="activateSysType('nube')" class="sys-btn bg-sand-50 border-2 border-transparent hover:border-olive-300 p-4 rounded-xl flex items-center gap-4 transition-all w-full text-left" data-sys="nube">
-                                        <div class="bg-white p-3 rounded-lg shadow-sm text-charcoal"><i data-lucide="cloud"></i></div>
-                                        <div><h4 class="font-bold text-charcoal">La Nube</h4><p class="text-xs text-charcoal-light">Ronda 2</p></div>
+                                    <button onclick="activateSysType('nube')" class="sys-btn snap-center shrink-0 w-[140px] md:w-full bg-sand-50 border-2 border-transparent hover:border-olive-300 p-3 md:p-4 rounded-xl flex flex-col md:flex-row items-center gap-2 md:gap-4 transition-all text-center md:text-left" data-sys="nube">
+                                        <div class="bg-white p-2 md:p-3 rounded-lg shadow-sm text-charcoal"><i data-lucide="cloud" class="w-5 h-5 md:w-6 md:h-6"></i></div>
+                                        <div><h4 class="font-bold text-charcoal text-sm md:text-base">La Nube</h4><p class="text-[10px] md:text-xs text-charcoal-light">Ronda 2</p></div>
                                     </button>
                                 </div>
-                                <!-- Display Derecha -->
-                                <div class="w-2/3 bg-sand-50 rounded-2xl border border-sand-200 p-8 flex flex-col justify-center transition-opacity" id="sys-display">
-                                    <div class="text-center opacity-50"><i data-lucide="mouse-pointer-click" class="w-12 h-12 mx-auto mb-4"></i><p>Haz clic en un sistema para ver las instrucciones del juego</p></div>
+                                <!-- Display -->
+                                <div class="w-full md:w-2/3 min-h-[220px] md:min-h-[250px] bg-sand-50 rounded-xl md:rounded-2xl border border-sand-200 p-5 md:p-8 flex flex-col justify-center transition-opacity" id="sys-display">
+                                    <div class="text-center opacity-50"><i data-lucide="mouse-pointer-click" class="w-8 h-8 md:w-12 md:h-12 mx-auto mb-3 md:mb-4"></i><p class="text-xs md:text-base">Toca un sistema para ver las instrucciones del juego</p></div>
                                 </div>
                             </div>
                         </div>
@@ -185,9 +224,9 @@
 
                     <!-- SLIDE 6: REFLEXIÓN JUEGO -->
                     <div class="slide bg-terracotta-600 text-white" id="slide-5">
-                        <div class="relative h-full flex flex-col items-center justify-center text-center px-16">
-                            <div class="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mb-8 backdrop-blur-sm"><i data-lucide="message-circle-question" class="w-10 h-10"></i></div>
-                            <h2 class="font-serif text-4xl md:text-5xl leading-tight italic max-w-4xl">
+                        <div class="relative min-h-full flex flex-col items-center justify-center text-center px-6 md:px-16 py-10">
+                            <div class="w-16 h-16 md:w-20 md:h-20 bg-white/10 rounded-full flex items-center justify-center mb-6 md:mb-8 backdrop-blur-sm"><i data-lucide="message-circle-question" class="w-8 h-8 md:w-10 md:h-10"></i></div>
+                            <h2 class="font-serif text-2xl md:text-5xl leading-relaxed md:leading-tight italic max-w-4xl">
                                 "¿De qué nos damos cuenta? Si El Bagre fuera este salón, ¿qué nos enseña este ejercicio sobre los retos de intentar construir paz en el territorio?"
                             </h2>
                         </div>
@@ -195,200 +234,400 @@
 
                     <!-- SLIDE 7: DOS COLUMNAS (ENFOQUES) -->
                     <div class="slide bg-white" id="slide-6">
-                        <div class="relative h-full flex flex-col p-12">
-                            <h2 class="font-serif text-4xl text-charcoal mb-10 text-center">Enfoques de intervención</h2>
-                            <div class="grid grid-cols-2 gap-8 h-full">
-                                <div class="bg-sand-50 border border-sand-200 rounded-xl p-8 flex flex-col">
-                                    <h3 class="text-xl font-bold text-terracotta-600 mb-6 flex items-center gap-2"><i data-lucide="settings-2"></i> Enfoque Mecánico</h3>
-                                    <ul class="space-y-4 text-charcoal-light flex-grow justify-center flex flex-col text-base md:text-lg">
+                        <div class="relative min-h-full flex flex-col p-5 md:p-12 justify-start md:justify-center">
+                            <h2 class="font-serif text-3xl md:text-4xl text-charcoal mb-6 md:mb-10 text-center mt-2 md:mt-0">Enfoques de intervención</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 pb-8 md:pb-0">
+                                <div class="bg-sand-50 border border-sand-200 rounded-xl p-5 md:p-8 flex flex-col">
+                                    <h3 class="text-lg md:text-xl font-bold text-terracotta-600 mb-4 md:mb-6 flex items-center gap-2"><i data-lucide="settings-2" class="w-5 h-5 md:w-6 md:h-6"></i> Mecánico</h3>
+                                    <ul class="space-y-3 md:space-y-4 text-charcoal-light flex-grow justify-center flex flex-col text-sm md:text-lg">
                                         <li>• Finito, predecible y controlable.</li>
-                                        <li>• Se aísla el elemento del todo (se fragmenta).</li>
+                                        <li>• Se aísla el elemento (se fragmenta).</li>
                                         <li>• Modificación de una variable a la vez.</li>
                                         <li>• Buscar "la pieza rota" y repararla.</li>
                                     </ul>
                                 </div>
-                                <div class="bg-olive-50 border border-olive-100 rounded-xl p-8 flex flex-col">
-                                    <h3 class="text-xl font-bold text-olive-700 mb-6 flex items-center gap-2"><i data-lucide="infinity"></i> Enfoque Sistémico Complejo</h3>
-                                    <ul class="space-y-4 text-charcoal-light flex-grow justify-center flex flex-col text-base md:text-lg">
+                                <div class="bg-olive-50 border border-olive-100 rounded-xl p-5 md:p-8 flex flex-col">
+                                    <h3 class="text-lg md:text-xl font-bold text-olive-700 mb-4 md:mb-6 flex items-center gap-2"><i data-lucide="infinity" class="w-5 h-5 md:w-6 md:h-6"></i> Sistémico Complejo</h3>
+                                    <ul class="space-y-3 md:space-y-4 text-charcoal-light flex-grow justify-center flex flex-col text-sm md:text-lg">
                                         <li>• Infinito, dinámico, impredecible.</li>
-                                        <li>• Análisis centrado en las interacciones y relaciones.</li>
-                                        <li>• Considera efectos colaterales (interdependencia).</li>
-                                        <li>• Buscar patrones y aprovechar oportunidades.</li>
+                                        <li>• Análisis centrado en interacciones.</li>
+                                        <li>• Considera efectos colaterales.</li>
+                                        <li>• Buscar patrones y oportunidades.</li>
                                     </ul>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- SLIDE 8: EJEMPLOS (Incorporado después de los enfoques) -->
+                    <!-- SLIDE 8: EJEMPLOS -->
                     <div class="slide bg-white" id="slide-7">
-                        <div class="relative h-full flex flex-col p-12 justify-center">
-                            <span class="font-sans text-xs tracking-[0.15em] text-terracotta-600 uppercase font-bold text-center block mb-2">Ejemplos concretos</span>
-                            <h2 class="font-serif text-4.5xl text-charcoal text-center mb-8">¿Reloj o Nube?</h2>
+                        <div class="relative min-h-full flex flex-col p-5 md:p-12 justify-start md:justify-center">
+                            <span class="font-sans text-[10px] md:text-xs tracking-[0.15em] text-terracotta-600 uppercase font-bold text-center block mb-2 mt-2 md:mt-0">Ejemplos concretos</span>
+                            <h2 class="font-serif text-3xl md:text-4.5xl text-charcoal text-center mb-6 md:mb-8">¿Reloj o Nube?</h2>
                             
-                            <div class="grid grid-cols-2 gap-8 max-w-5xl mx-auto items-stretch relative h-[65%]">
-                                <!-- Línea divisoria central -->
-                                <div class="absolute top-4 bottom-4 left-1/2 w-0.5 bg-sand-300 transform -translate-x-1/2"></div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto relative w-full pb-8 md:pb-0">
+                                <div class="hidden md:block absolute top-4 bottom-4 left-1/2 w-0.5 bg-sand-300 transform -translate-x-1/2"></div>
                                 
-                                <!-- Ejemplos Reloj -->
-                                <div class="pr-8 flex flex-col justify-center space-y-4">
-                                    <h3 class="font-serif text-2xl text-terracotta-600 mb-2 flex items-center gap-2"><i data-lucide="box"></i> Problemas tipo Reloj (Mecánicos)</h3>
-                                    <ul class="space-y-3 text-base md:text-lg text-charcoal-light font-medium">
-                                        <li class="flex items-center gap-3"><i data-lucide="arrow-right" class="w-4 h-4 text-terracotta-500"></i> Repartir paquetes de comida.</li>
-                                        <li class="flex items-center gap-3"><i data-lucide="arrow-right" class="w-4 h-4 text-terracotta-500"></i> Instalar paneles solares.</li>
-                                        <li class="flex items-center gap-3"><i data-lucide="arrow-right" class="w-4 h-4 text-terracotta-500"></i> Comercializar un nuevo producto.</li>
-                                        <li class="flex items-center gap-3"><i data-lucide="arrow-right" class="w-4 h-4 text-terracotta-500"></i> Llevar a cabo un proceso electoral.</li>
+                                <div class="md:pr-8 flex flex-col justify-center space-y-3 md:space-y-4">
+                                    <h3 class="font-serif text-xl md:text-2xl text-terracotta-600 mb-1 md:mb-2 flex items-center gap-2"><i data-lucide="box" class="w-5 h-5 md:w-6 md:h-6"></i> Problemas tipo Reloj</h3>
+                                    <ul class="space-y-2 md:space-y-3 text-sm md:text-lg text-charcoal-light font-medium">
+                                        <li class="flex items-center gap-2 md:gap-3"><i data-lucide="arrow-right" class="w-4 h-4 text-terracotta-500 shrink-0"></i> Repartir paquetes de comida.</li>
+                                        <li class="flex items-center gap-2 md:gap-3"><i data-lucide="arrow-right" class="w-4 h-4 text-terracotta-500 shrink-0"></i> Instalar paneles solares.</li>
+                                        <li class="flex items-center gap-2 md:gap-3"><i data-lucide="arrow-right" class="w-4 h-4 text-terracotta-500 shrink-0"></i> Comercializar un nuevo producto.</li>
+                                        <li class="flex items-center gap-2 md:gap-3"><i data-lucide="arrow-right" class="w-4 h-4 text-terracotta-500 shrink-0"></i> Realizar un proceso electoral.</li>
                                     </ul>
                                 </div>
                                 
-                                <!-- Ejemplos Nube -->
-                                <div class="pl-8 flex flex-col justify-center space-y-4">
-                                    <h3 class="font-serif text-2xl text-olive-700 mb-2 flex items-center gap-2"><i data-lucide="sparkles"></i> Problemas tipo Nube (Sistémicos)</h3>
-                                    <ul class="space-y-3 text-base md:text-lg text-charcoal-light font-medium">
-                                        <li class="flex items-center gap-3"><i data-lucide="arrow-right" class="w-4 h-4 text-olive-500"></i> Garantizar la seguridad alimentaria.</li>
-                                        <li class="flex items-center gap-3"><i data-lucide="arrow-right" class="w-4 h-4 text-olive-500"></i> Combatir el cambio climático.</li>
-                                        <li class="flex items-center gap-3"><i data-lucide="arrow-right" class="w-4 h-4 text-olive-500"></i> Construir un negocio sostenible.</li>
-                                        <li class="flex items-center gap-3"><i data-lucide="arrow-right" class="w-4 h-4 text-olive-500"></i> Fomentar una democracia sana.</li>
+                                <div class="md:hidden w-full h-0.5 bg-sand-200 my-1"></div>
+                                
+                                <div class="md:pl-8 flex flex-col justify-center space-y-3 md:space-y-4">
+                                    <h3 class="font-serif text-xl md:text-2xl text-olive-700 mb-1 md:mb-2 flex items-center gap-2"><i data-lucide="sparkles" class="w-5 h-5 md:w-6 md:h-6"></i> Problemas tipo Nube</h3>
+                                    <ul class="space-y-2 md:space-y-3 text-sm md:text-lg text-charcoal-light font-medium">
+                                        <li class="flex items-center gap-2 md:gap-3"><i data-lucide="arrow-right" class="w-4 h-4 text-olive-500 shrink-0"></i> Garantizar seguridad alimentaria.</li>
+                                        <li class="flex items-center gap-2 md:gap-3"><i data-lucide="arrow-right" class="w-4 h-4 text-olive-500 shrink-0"></i> Combatir el cambio climático.</li>
+                                        <li class="flex items-center gap-2 md:gap-3"><i data-lucide="arrow-right" class="w-4 h-4 text-olive-500 shrink-0"></i> Construir un negocio sostenible.</li>
+                                        <li class="flex items-center gap-2 md:gap-3"><i data-lucide="arrow-right" class="w-4 h-4 text-olive-500 shrink-0"></i> Fomentar una democracia sana.</li>
                                     </ul>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- SLIDE 9: TRANSFORMACION SISTEMICA -->
-                    <div class="slide bg-sand-100" id="slide-8">
-                        <div class="relative h-full flex flex-col p-12 justify-center">
-                            <h2 class="font-serif text-4xl text-charcoal mb-8 text-center">Qué implica una transformación sistémica</h2>
-                            <div class="max-w-4xl mx-auto space-y-5 bg-white p-8 md:p-10 rounded-2xl shadow-md border border-sand-200 text-[17px] md:text-lg text-charcoal-light leading-relaxed">
-                                <p class="flex items-start gap-4"><i data-lucide="ban" class="w-6 h-6 text-terracotta-500 shrink-0 mt-1"></i> El sistema no se cambia desde afuera, ni se controla.</p>
-                                <p class="flex items-start gap-4"><i data-lucide="eye" class="w-6 h-6 text-olive-600 shrink-0 mt-1"></i> Pasamos de enfocarnos en "problemas" a entender cómo funcionan las relaciones hoy (mirada apreciativa).</p>
-                                <p class="flex items-start gap-4"><i data-lucide="handshake" class="w-6 h-6 text-olive-600 shrink-0 mt-1"></i> Pasamos de convencer o imponer a <strong>comprender, participar, colaborar y adaptar</strong>.</p>
-                                <p class="flex items-start gap-4"><i data-lucide="wand-2" class="w-6 h-6 text-terracotta-500 shrink-0 mt-1"></i> No traemos "soluciones mágicas"; el cambio se concibe como un proceso dinámico y no como un resultado fijo.</p>
+                    <!-- SLIDE 9: INVESTIGACIÓN ACCIÓN SISTÉMICA (DIAGRAMA ADAPTADO) -->
+                    <div class="slide bg-white" id="slide-8">
+                        <div class="relative min-h-full flex flex-col p-4 md:p-8 justify-between">
+                            
+                            <!-- Encabezado -->
+                            <div class="text-center mb-2 md:mb-3 mt-4 md:mt-0">
+                                <span class="font-sans text-[10px] tracking-[0.15em] text-terracotta-600 uppercase font-bold block">Ruta Metodológica Completa</span>
+                                <h2 class="font-serif text-2xl md:text-3.5xl text-charcoal font-bold">Investigación Acción Sistémica (IAS)</h2>
+                            </div>
+                            
+                            <div class="flex-grow flex flex-col justify-around max-w-5xl mx-auto w-full gap-4 pb-6 md:pb-0">
+                                
+                                <!-- FILA SUPERIOR: PREPARACIÓN Y MAPEO SISTÉMICO -->
+                                <div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                                        
+                                        <!-- Paso 1: Preparación -->
+                                        <div class="bg-sand-50 border border-sand-200 rounded-2xl p-3.5 flex flex-col items-center text-center relative shadow-sm">
+                                            <div class="flex items-center justify-center mb-2 relative">
+                                                <div class="w-11 h-11 rounded-full bg-charcoal text-sand-100 flex items-center justify-center shadow ring-4 ring-sand-200">
+                                                    <i data-lucide="users" class="w-5 h-5"></i>
+                                                </div>
+                                                <div class="hidden md:flex absolute -right-7 top-1/2 -translate-y-1/2 text-charcoal-light">
+                                                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                                                </div>
+                                            </div>
+                                            <h4 class="font-serif font-bold text-sm text-charcoal mb-1">1. Preparación</h4>
+                                            <p class="text-[11px] md:text-xs text-charcoal-light leading-snug">Identificación de participantes y gobernanza.</p>
+                                        </div>
+
+                                        <!-- Paso 2: Marco -->
+                                        <div class="bg-olive-50/70 border border-olive-200 rounded-2xl p-3.5 flex flex-col items-center text-center relative shadow-sm">
+                                            <div class="flex items-center justify-center mb-2 relative">
+                                                <div class="w-11 h-11 rounded-full bg-olive-600 text-white flex items-center justify-center shadow ring-4 ring-olive-100">
+                                                    <i data-lucide="compass" class="w-5 h-5"></i>
+                                                </div>
+                                                <div class="hidden md:flex absolute -right-7 top-1/2 -translate-y-1/2 text-olive-600">
+                                                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                                                </div>
+                                            </div>
+                                            <h4 class="font-serif font-bold text-sm text-olive-700 mb-1">2. Marco</h4>
+                                            <p class="text-[11px] md:text-xs text-charcoal-light leading-snug">Pregunta orientadora, límites y estrella guía.</p>
+                                        </div>
+
+                                        <!-- Paso 3: Historias -->
+                                        <div class="bg-olive-50/70 border border-olive-200 rounded-2xl p-3.5 flex flex-col items-center text-center relative shadow-sm">
+                                            <div class="flex items-center justify-center mb-2 relative">
+                                                <div class="w-11 h-11 rounded-full bg-olive-600 text-white flex items-center justify-center shadow ring-4 ring-olive-100">
+                                                    <i data-lucide="book-open" class="w-5 h-5"></i>
+                                                </div>
+                                                <div class="hidden md:flex absolute -right-7 top-1/2 -translate-y-1/2 text-olive-600">
+                                                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                                                </div>
+                                            </div>
+                                            <h4 class="font-serif font-bold text-sm text-olive-700 mb-1">3. Historias de vida</h4>
+                                            <p class="text-[11px] md:text-xs text-charcoal-light leading-snug">Diseño, recolección y preparación de narrativas.</p>
+                                        </div>
+
+                                        <!-- Paso 4: Mapeo -->
+                                        <div class="bg-olive-50/70 border border-olive-200 rounded-2xl p-3.5 flex flex-col items-center text-center relative shadow-sm">
+                                            <div class="flex items-center justify-center mb-2 relative">
+                                                <div class="w-11 h-11 rounded-full bg-olive-700 text-white flex items-center justify-center shadow ring-4 ring-olive-200">
+                                                    <i data-lucide="network" class="w-5 h-5"></i>
+                                                </div>
+                                                <div class="hidden md:flex absolute -bottom-6 left-1/2 -translate-x-1/2 text-terracotta-500">
+                                                    <i data-lucide="arrow-down" class="w-5 h-5"></i>
+                                                </div>
+                                            </div>
+                                            <h4 class="font-serif font-bold text-sm text-olive-700 mb-1">4. Mapeo</h4>
+                                            <p class="text-[11px] md:text-xs text-charcoal-light leading-snug">Comprensión colectiva del funcionamiento del sistema.</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Etiquetas de agrupación fila superior -->
+                                    <div class="hidden md:grid grid-cols-4 gap-4 mt-2">
+                                        <div class="flex flex-col items-center">
+                                            <div class="w-full border-b-2 border-dotted border-charcoal-light h-2 flex items-center justify-between">
+                                                <span class="w-2 h-2 border border-charcoal bg-white"></span>
+                                                <span class="w-2 h-2 border border-charcoal bg-white"></span>
+                                            </div>
+                                            <span class="text-[11px] font-bold text-charcoal uppercase tracking-wider mt-1">Alianza Territorial</span>
+                                        </div>
+                                        <div class="col-span-3 flex flex-col items-center">
+                                            <div class="w-full border-b-2 border-dotted border-olive-600 h-2 flex items-center justify-between">
+                                                <span class="w-2 h-2 border border-olive-700 bg-white"></span>
+                                                <span class="w-2 h-2 border border-olive-700 bg-white"></span>
+                                            </div>
+                                            <span class="text-[11px] font-bold text-olive-700 uppercase tracking-wider mt-1">Alcance Presencial: Mapeo Sistémico</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- FILA INFERIOR: OPORTUNIDADES Y ACCIONES DE PAZ -->
+                                <div>
+                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4 items-stretch">
+                                        
+                                        <!-- Acciones de paz (Columnas 1 y 2 en Desktop, fluye hacia la izquierda) -->
+                                        <div class="md:col-span-2 bg-sand-50/90 border border-sand-200 rounded-2xl p-3.5 flex flex-col justify-center relative order-3 md:order-1 mt-4 md:mt-0">
+                                            <div class="text-center mb-2">
+                                                <span class="text-[11px] font-bold text-charcoal uppercase tracking-wider bg-white px-3 py-0.5 rounded-full border border-sand-200 shadow-sm">Círculos de aprendizaje - acción</span>
+                                            </div>
+                                            
+                                            <!-- Líneas de tiempo hacia la izquierda -->
+                                            <div class="space-y-2.5 my-1 px-2">
+                                                <!-- Línea Terracota -->
+                                                <div class="flex items-center">
+                                                    <i data-lucide="chevron-left" class="w-4 h-4 text-terracotta-500 -mr-1.5 shrink-0"></i>
+                                                    <div class="h-0.5 bg-terracotta-400 flex-grow relative flex items-center justify-around">
+                                                        <span class="w-2.5 h-2.5 rounded-full bg-terracotta-500"></span>
+                                                        <span class="w-2.5 h-2.5 rounded-full bg-terracotta-500"></span>
+                                                    </div>
+                                                    <span class="w-4 h-4 rounded-full bg-terracotta-500 shrink-0 shadow-sm"></span>
+                                                </div>
+                                                <!-- Línea Oliva -->
+                                                <div class="flex items-center">
+                                                    <i data-lucide="chevron-left" class="w-4 h-4 text-olive-600 -mr-1.5 shrink-0"></i>
+                                                    <div class="h-0.5 bg-olive-500 flex-grow relative flex items-center justify-around">
+                                                        <span class="w-2.5 h-2.5 rounded-full bg-olive-600"></span>
+                                                        <span class="w-2.5 h-2.5 rounded-full bg-olive-600"></span>
+                                                    </div>
+                                                    <span class="w-4 h-4 rounded-full bg-olive-600 shrink-0 shadow-sm"></span>
+                                                </div>
+                                                <!-- Línea Carbón -->
+                                                <div class="flex items-center">
+                                                    <i data-lucide="chevron-left" class="w-4 h-4 text-charcoal -mr-1.5 shrink-0"></i>
+                                                    <div class="h-0.5 bg-charcoal-light flex-grow relative flex items-center justify-around">
+                                                        <span class="w-2.5 h-2.5 rounded-full bg-charcoal"></span>
+                                                        <span class="w-2.5 h-2.5 rounded-full bg-charcoal"></span>
+                                                    </div>
+                                                    <span class="w-4 h-4 rounded-full bg-charcoal shrink-0 shadow-sm"></span>
+                                                </div>
+                                                <!-- Línea Arena Oscura -->
+                                                <div class="flex items-center">
+                                                    <i data-lucide="chevron-left" class="w-4 h-4 text-amber-600 -mr-1.5 shrink-0"></i>
+                                                    <div class="h-0.5 bg-amber-500 flex-grow relative flex items-center justify-around">
+                                                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                                                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                                                    </div>
+                                                    <span class="w-4 h-4 rounded-full bg-amber-500 shrink-0 shadow-sm"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Paso 6: Ruta de colaboración (Columna 3) -->
+                                        <div class="bg-terracotta-50/80 border border-terracotta-200 rounded-2xl p-3.5 flex flex-col items-center text-center relative shadow-sm order-2 md:order-2">
+                                            <div class="flex items-center justify-center mb-2 relative">
+                                                <div class="hidden md:flex absolute -left-7 top-1/2 -translate-y-1/2 text-terracotta-500">
+                                                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                                                </div>
+                                                <div class="w-11 h-11 rounded-full bg-terracotta-500 text-white flex items-center justify-center shadow ring-4 ring-terracotta-100">
+                                                    <i data-lucide="git-branch" class="w-5 h-5"></i>
+                                                </div>
+                                            </div>
+                                            <h4 class="font-serif font-bold text-sm text-terracotta-700 mb-1">6. Ruta de acción</h4>
+                                            <p class="text-[11px] md:text-xs text-charcoal-light leading-snug">Teorías de cambio, acciones estratégicas y planes por organización.</p>
+                                        </div>
+
+                                        <!-- Paso 5: Análisis de oportunidades (Columna 4, recibe de Mapeo) -->
+                                        <div class="bg-terracotta-50/80 border border-terracotta-200 rounded-2xl p-3.5 flex flex-col items-center text-center relative shadow-sm order-1 md:order-3">
+                                            <div class="flex items-center justify-center mb-2 relative">
+                                                <div class="hidden md:flex absolute -left-7 top-1/2 -translate-y-1/2 text-terracotta-500">
+                                                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                                                </div>
+                                                <div class="w-11 h-11 rounded-full bg-terracotta-500 text-white flex items-center justify-center shadow ring-4 ring-terracotta-100">
+                                                    <i data-lucide="lightbulb" class="w-5 h-5"></i>
+                                                </div>
+                                            </div>
+                                            <h4 class="font-serif font-bold text-sm text-terracotta-700 mb-1">5. Análisis</h4>
+                                            <p class="text-[11px] md:text-xs text-charcoal-light leading-snug">Identificación de palancas y oportunidades de transformación.</p>
+                                        </div>
+
+                                    </div>
+
+                                    <!-- Etiquetas de agrupación fila inferior -->
+                                    <div class="hidden md:grid grid-cols-4 gap-4 mt-2">
+                                        <div class="col-span-2 flex flex-col items-center">
+                                            <div class="w-full border-b-2 border-dotted border-charcoal h-2 flex items-center justify-between">
+                                                <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-charcoal -ml-1"></i>
+                                                <span class="w-2 h-2 border border-charcoal bg-white"></span>
+                                            </div>
+                                            <span class="text-[11px] font-bold text-charcoal uppercase tracking-wider mt-1">Implementación Autónoma: Acciones de Paz</span>
+                                        </div>
+                                        <div class="col-span-2 flex flex-col items-center">
+                                            <div class="w-full border-b-2 border-dotted border-terracotta-500 h-2 flex items-center justify-between">
+                                                <span class="w-2 h-2 border border-terracotta-600 bg-white"></span>
+                                                <span class="w-2 h-2 border border-terracotta-600 bg-white"></span>
+                                            </div>
+                                            <span class="text-[11px] font-bold text-terracotta-600 uppercase tracking-wider mt-1">Acompañamiento Virtual: Oportunidades</span>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
                     </div>
 
-                    <!-- SLIDE 10: INMERSIÓN / QR -->
-                    <div class="slide bg-white" id="slide-9">
-                        <div class="relative h-full flex p-12 gap-12 items-center">
-                            <div class="w-1/2">
-                                <span class="font-sans text-xs tracking-[0.15em] text-terracotta-600 uppercase font-bold">Bloque 4 • Inmersión interactiva</span>
-                                <h2 class="font-serif text-4xl text-charcoal mt-2 mb-8">Exploración de los mapas</h2>
-                                <ol class="space-y-5 text-lg text-charcoal-light list-decimal list-inside font-medium">
-                                    <li>Formemos 3 grupos de 5 personas.</li>
-                                    <li>Ingresen a la plataforma escaneando el código o desde sus computadores.</li>
-                                    <li>Exploren los mapas de El Tambo, Cauca y la sección Fotovoz (15 mins).</li>
-                                    <li>Formulen <strong class="text-terracotta-600">dos (2) preguntas</strong> concretas sobre el proceso para Alejandra Solarte.</li>
+                    <!-- SLIDE 10: TRANSFORMACION SISTEMICA -->
+                    <div class="slide bg-sand-100" id="slide-9">
+                        <div class="relative min-h-full flex flex-col p-5 md:p-12 justify-start md:justify-center">
+                            <h2 class="font-serif text-2xl md:text-4xl text-charcoal mb-4 md:mb-8 text-center mt-2 md:mt-0">Qué implica una transformación</h2>
+                            <div class="max-w-4xl mx-auto space-y-3 md:space-y-5 bg-white p-5 md:p-10 rounded-xl md:rounded-2xl shadow-sm md:shadow-md border border-sand-200 text-sm md:text-lg text-charcoal-light leading-relaxed mb-8 md:mb-0">
+                                <p class="flex items-start gap-3"><i data-lucide="ban" class="w-5 h-5 text-terracotta-500 shrink-0 mt-0.5"></i> El sistema no se cambia desde afuera, ni se controla.</p>
+                                <p class="flex items-start gap-3"><i data-lucide="eye" class="w-5 h-5 text-olive-600 shrink-0 mt-0.5"></i> Pasamos de enfocarnos en "problemas" a entender cómo funcionan las relaciones hoy.</p>
+                                <p class="flex items-start gap-3"><i data-lucide="handshake" class="w-5 h-5 text-olive-600 shrink-0 mt-0.5"></i> Pasamos de convencer o imponer a <strong>comprender, participar y adaptar</strong>.</p>
+                                <p class="flex items-start gap-3"><i data-lucide="wand-2" class="w-5 h-5 text-terracotta-500 shrink-0 mt-0.5"></i> No traemos "soluciones mágicas"; el cambio es un proceso, no un resultado fijo.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SLIDE 11: INMERSIÓN / QR -->
+                    <div class="slide bg-white" id="slide-10">
+                        <div class="relative min-h-full flex flex-col md:flex-row p-5 md:p-12 gap-6 md:gap-12 items-center justify-start md:justify-center">
+                            <div class="w-full md:w-1/2 mt-2 md:mt-0">
+                                <span class="font-sans text-[10px] md:text-xs tracking-[0.15em] text-terracotta-600 uppercase font-bold">Bloque 4 • Inmersión</span>
+                                <h2 class="font-serif text-3xl md:text-4xl text-charcoal mt-1 md:mt-2 mb-4 md:mb-8">Exploración de mapas</h2>
+                                <ol class="space-y-3 md:space-y-5 text-sm md:text-lg text-charcoal-light list-decimal list-inside font-medium">
+                                    <li>Formemos 3 grupos.</li>
+                                    <li>Ingresen a la plataforma escaneando el código.</li>
+                                    <li>Exploren los mapas y Fotovoz (15 mins).</li>
+                                    <li>Formulen <strong class="text-terracotta-600">dos (2) preguntas</strong> para Alejandra Solarte.</li>
                                 </ol>
                             </div>
-                            <div class="w-1/2 flex flex-col items-center justify-center">
-                                <div class="bg-sand-50 p-6 rounded-2xl border border-sand-200 shadow-md">
-                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://coinspira.estudiovastago.com&color=221F1F&bgcolor=FAF8F5" alt="QR Co-inspira" class="rounded-lg">
+                            <div class="w-full md:w-1/2 flex flex-col items-center justify-center pb-8 md:pb-0">
+                                <div class="bg-sand-50 p-4 md:p-6 rounded-xl md:rounded-2xl border border-sand-200 shadow-sm md:shadow-md">
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://coinspira.estudiovastago.com&color=221F1F&bgcolor=FAF8F5" alt="QR Co-inspira" class="rounded-lg w-28 h-28 md:w-48 md:h-48">
                                 </div>
-                                <p class="mt-4 font-mono text-sm text-charcoal font-bold">coinspira.estudiovastago.com</p>
+                                <p class="mt-3 md:mt-4 font-mono text-xs md:text-sm text-charcoal font-bold text-center">coinspira.estudiovastago.com</p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- SLIDE 11: ALCANCE VIAJE -->
-                    <div class="slide bg-olive-700 text-white" id="slide-10">
-                        <div class="relative h-full flex flex-col p-12 justify-center">
-                            <span class="font-sans text-xs tracking-[0.15em] text-sand-300 uppercase font-bold text-center block mb-2">Bloque 5 • Gobernanza</span>
-                            <h2 class="font-serif text-4xl mb-12 text-center">El alcance de nuestro viaje</h2>
-                            <div class="grid grid-cols-2 gap-8 max-w-4xl mx-auto">
-                                <div class="bg-white/10 p-8 rounded-xl border border-white/20 backdrop-blur-sm text-center">
-                                    <i data-lucide="map" class="w-12 h-12 text-sand-200 mx-auto mb-4"></i>
-                                    <h3 class="font-bold text-xl mb-3 text-white">Llegamos al Mapa (Presencial)</h3>
-                                    <p class="text-sm text-sand-100 font-light">3 encuentros financiados por Red ECO para construir y finalizar el mapa sistémico físico y digital.</p>
+                    <!-- SLIDE 12: ALCANCE VIAJE -->
+                    <div class="slide bg-olive-700 text-white" id="slide-11">
+                        <div class="relative min-h-full flex flex-col p-5 md:p-12 justify-start md:justify-center">
+                            <span class="font-sans text-[10px] md:text-xs tracking-[0.15em] text-sand-300 uppercase font-bold text-center block mb-2 mt-4 md:mt-0">Bloque 5 • Gobernanza</span>
+                            <h2 class="font-serif text-3xl md:text-4xl mb-6 md:mb-12 text-center">El alcance de nuestro viaje</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 max-w-4xl mx-auto pb-8 md:pb-0 w-full">
+                                <div class="bg-white/10 p-5 md:p-8 rounded-xl border border-white/20 backdrop-blur-sm text-center">
+                                    <i data-lucide="map" class="w-8 h-8 md:w-12 md:h-12 text-sand-200 mx-auto mb-3 md:mb-4"></i>
+                                    <h3 class="font-bold text-base md:text-xl mb-2 md:mb-3 text-white">Mapa (Presencial)</h3>
+                                    <p class="text-xs md:text-sm text-sand-100 font-light leading-relaxed">3 encuentros financiados por Red ECO para construir y finalizar el mapa físico y digital.</p>
                                 </div>
-                                <div class="bg-white/10 p-8 rounded-xl border border-white/20 backdrop-blur-sm text-center">
-                                    <i data-lucide="lightbulb" class="w-12 h-12 text-sand-200 mx-auto mb-4"></i>
-                                    <h3 class="font-bold text-xl mb-3 text-white">Oportunidades (Virtual)</h3>
-                                    <p class="text-sm text-sand-100 font-light">Acompañamiento en línea para que cada organización analice el mapa y decida sus propias rutas de acción.</p>
+                                <div class="bg-white/10 p-5 md:p-8 rounded-xl border border-white/20 backdrop-blur-sm text-center">
+                                    <i data-lucide="lightbulb" class="w-8 h-8 md:w-12 md:h-12 text-sand-200 mx-auto mb-3 md:mb-4"></i>
+                                    <h3 class="font-bold text-base md:text-xl mb-2 md:mb-3 text-white">Oportunidades (Virtual)</h3>
+                                    <p class="text-xs md:text-sm text-sand-100 font-light leading-relaxed">Acompañamiento en línea para que cada organización analice el mapa y decida su acción.</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- SLIDE 12: ROLES EQUIPO (Mejoras de espacio y balance) -->
-                    <div class="slide bg-white" id="slide-11">
-                        <div class="relative h-full flex flex-col p-12 justify-center">
-                            <span class="font-sans text-xs tracking-[0.15em] text-terracotta-600 uppercase font-bold text-center block mb-2">Compromiso y Gobernanza</span>
-                            <h2 class="font-serif text-4xl text-charcoal mb-10 text-center">Los roles del equipo</h2>
+                    <!-- SLIDE 13: ROLES EQUIPO -->
+                    <div class="slide bg-white" id="slide-12">
+                        <div class="relative min-h-full flex flex-col p-5 md:p-12 justify-start md:justify-center">
+                            <span class="font-sans text-[10px] md:text-xs tracking-[0.15em] text-terracotta-600 uppercase font-bold text-center block mb-1 mt-2 md:mt-0">Compromiso</span>
+                            <h2 class="font-serif text-3xl md:text-4xl text-charcoal mb-5 md:mb-10 text-center">Los roles del equipo</h2>
                             
-                            <div class="grid grid-cols-3 gap-6 max-w-5xl mx-auto mb-8">
-                                <div class="bg-sand-50 border border-sand-200 rounded-2xl p-6 text-center shadow-md">
-                                    <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center mx-auto mb-4 text-terracotta-600 border border-sand-200"><i data-lucide="link"></i></div>
-                                    <h3 class="font-serif text-xl text-charcoal mb-2">Enlace Local</h3>
-                                    <p class="text-xs md:text-sm text-charcoal-light leading-relaxed"><strong>Dayanis Castillo.</strong> Coordinación logística, convocatorias y seguimiento territorial permanente.</p>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 max-w-5xl mx-auto mb-5 md:mb-8 w-full">
+                                <div class="bg-sand-50 border border-sand-200 rounded-xl md:rounded-2xl p-4 md:p-6 text-center shadow-sm md:shadow-md flex flex-row md:flex-col items-center md:items-stretch gap-4 md:gap-0">
+                                    <div class="w-10 h-10 md:w-14 md:h-14 bg-white rounded-full flex shrink-0 items-center justify-center md:mx-auto md:mb-4 text-terracotta-600 border border-sand-200"><i data-lucide="link" class="w-4 h-4 md:w-6 md:h-6"></i></div>
+                                    <div class="text-left md:text-center">
+                                        <h3 class="font-serif text-base md:text-xl text-charcoal mb-1 md:mb-2">Enlace Local</h3>
+                                        <p class="text-[11px] md:text-sm text-charcoal-light leading-relaxed"><strong>Dayanis Castillo.</strong> Coordinación y convocatorias.</p>
+                                    </div>
                                 </div>
-                                <div class="bg-sand-50 border border-sand-200 rounded-2xl p-6 text-center shadow-md relative overflow-hidden">
-                                    <div class="absolute top-0 left-0 w-full h-1.5 bg-olive-500"></div>
-                                    <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center mx-auto mb-4 text-olive-600 border border-sand-200"><i data-lucide="cog"></i></div>
-                                    <h3 class="font-serif text-xl text-charcoal mb-2">Equipo Motor</h3>
-                                    <p class="text-xs md:text-sm text-charcoal-light leading-relaxed"><strong>Grupo base (aprox. 5 personas)</strong> voluntario, que asistirá a reuniones virtuales para avanzar y refinar el mapa.</p>
+                                <div class="bg-sand-50 border border-sand-200 rounded-xl md:rounded-2xl p-4 md:p-6 text-center shadow-sm md:shadow-md relative overflow-hidden flex flex-row md:flex-col items-center md:items-stretch gap-4 md:gap-0">
+                                    <div class="absolute top-0 left-0 w-1.5 md:w-full h-full md:h-1.5 bg-olive-500"></div>
+                                    <div class="w-10 h-10 md:w-14 md:h-14 bg-white rounded-full flex shrink-0 items-center justify-center ml-2 md:ml-0 md:mx-auto md:mb-4 text-olive-600 border border-sand-200"><i data-lucide="cog" class="w-4 h-4 md:w-6 md:h-6"></i></div>
+                                    <div class="text-left md:text-center">
+                                        <h3 class="font-serif text-base md:text-xl text-charcoal mb-1 md:mb-2">Equipo Motor</h3>
+                                        <p class="text-[11px] md:text-sm text-charcoal-light leading-relaxed"><strong>Grupo base (aprox. 5)</strong> Reuniones virtuales con Alejandra, Ángela y Milton.</p>
+                                    </div>
                                 </div>
-                                <div class="bg-sand-50 border border-sand-200 rounded-2xl p-6 text-center shadow-md">
-                                    <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center mx-auto mb-4 text-terracotta-600 border border-sand-200"><i data-lucide="users-round"></i></div>
-                                    <h3 class="font-serif text-xl text-charcoal mb-2">Mapeadores</h3>
-                                    <p class="text-xs md:text-sm text-charcoal-light leading-relaxed"><strong>Todos los presentes hoy.</strong> Asistencia a los talleres presenciales, aporte de visiones, historias y análisis.</p>
+                                <div class="bg-sand-50 border border-sand-200 rounded-xl md:rounded-2xl p-4 md:p-6 text-center shadow-sm md:shadow-md flex flex-row md:flex-col items-center md:items-stretch gap-4 md:gap-0">
+                                    <div class="w-10 h-10 md:w-14 md:h-14 bg-white rounded-full flex shrink-0 items-center justify-center md:mx-auto md:mb-4 text-terracotta-600 border border-sand-200"><i data-lucide="users-round" class="w-4 h-4 md:w-6 md:h-6"></i></div>
+                                    <div class="text-left md:text-center">
+                                        <h3 class="font-serif text-base md:text-xl text-charcoal mb-1 md:mb-2">Mapeadores</h3>
+                                        <p class="text-[11px] md:text-sm text-charcoal-light leading-relaxed"><strong>Todos los presentes.</strong> Asistencia a talleres.</p>
+                                    </div>
                                 </div>
                             </div>
                             
-                            <!-- Frase de Anclaje inferior para balancear el espacio -->
-                            <div class="max-w-4xl mx-auto w-full bg-olive-50 border border-olive-100 rounded-xl px-6 py-4 flex items-center gap-4 text-olive-700 justify-center">
-                                <i data-lucide="shield-check" class="w-6 h-6 text-olive-600 shrink-0"></i>
-                                <p class="text-sm md:text-base font-semibold italic text-center">"El éxito de este mapa depende de la participación activa de quienes mejor conocen las dinámicas diarias de El Bagre."</p>
+                            <div class="max-w-4xl mx-auto w-full bg-olive-50 border border-olive-100 rounded-xl px-4 py-3 md:px-6 md:py-4 flex flex-row items-center gap-3 md:gap-4 text-olive-700 justify-center pb-6 md:pb-4">
+                                <i data-lucide="shield-check" class="w-5 h-5 md:w-6 md:h-6 text-olive-600 shrink-0"></i>
+                                <p class="text-[11px] md:text-base font-semibold italic text-left md:text-center">"El éxito del mapa depende de la participación activa de quienes conocen El Bagre."</p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- SLIDE 13: CRONOGRAMA INTERACTIVO -->
-                    <div class="slide bg-sand-50" id="slide-12">
-                        <div class="relative h-full flex flex-col p-12">
-                            <span class="font-sans text-xs tracking-[0.15em] text-terracotta-600 uppercase font-bold mb-1">Ruta participativa</span>
-                            <h2 class="font-serif text-4xl text-charcoal mb-8">Cronograma de compromisos a confirmar</h2>
+                    <!-- SLIDE 14: CRONOGRAMA INTERACTIVO -->
+                    <div class="slide bg-sand-50" id="slide-13">
+                        <div class="relative min-h-full flex flex-col p-5 md:p-12 justify-start md:justify-center">
+                            <span class="font-sans text-[10px] md:text-xs tracking-[0.15em] text-terracotta-600 uppercase font-bold mb-1 mt-2 md:mt-0">Ruta participativa</span>
+                            <h2 class="font-serif text-3xl md:text-4xl text-charcoal mb-4 md:mb-8">Cronograma a confirmar</h2>
                             
-                            <div class="flex gap-4">
-                                <!-- Botones Meses -->
-                                <div class="w-1/3 flex flex-col space-y-2">
-                                    <button onclick="activateTime(0)" class="time-btn bg-white border border-sand-200 hover:border-terracotta-400 p-3 rounded-lg text-left transition-colors flex justify-between" data-idx="0">
-                                        <span class="font-bold text-charcoal">Noviembre</span><span class="text-xs text-terracotta-600 uppercase">Acordar</span>
+                            <div class="flex flex-col md:flex-row gap-4 pb-8 md:pb-0">
+                                <!-- Botones Deslizables -->
+                                <div class="w-full md:w-1/3 flex flex-row md:flex-col overflow-x-auto md:overflow-visible hide-scroll gap-2 md:gap-0 md:space-y-2 pb-2 md:pb-0 snap-x">
+                                    <button onclick="activateTime(0)" class="time-btn snap-center shrink-0 w-[110px] md:w-full bg-white border border-sand-200 hover:border-terracotta-400 p-2 md:p-3 rounded-lg text-center md:text-left transition-colors flex flex-col md:flex-row justify-center md:justify-between items-center" data-idx="0">
+                                        <span class="font-bold text-charcoal text-xs md:text-base">Noviembre</span><span class="text-[9px] md:text-xs text-terracotta-600 uppercase mt-1 md:mt-0">Acordar</span>
                                     </button>
-                                    <button onclick="activateTime(1)" class="time-btn bg-white border border-sand-200 hover:border-terracotta-400 p-3 rounded-lg text-left transition-colors flex justify-between" data-idx="1">
-                                        <span class="font-bold text-charcoal">Dic / Ene</span><span class="text-xs text-charcoal-light uppercase">Virtual</span>
+                                    <button onclick="activateTime(1)" class="time-btn snap-center shrink-0 w-[110px] md:w-full bg-white border border-sand-200 hover:border-terracotta-400 p-2 md:p-3 rounded-lg text-center md:text-left transition-colors flex flex-col md:flex-row justify-center md:justify-between items-center" data-idx="1">
+                                        <span class="font-bold text-charcoal text-xs md:text-base">Dic / Ene</span><span class="text-[9px] md:text-xs text-charcoal-light uppercase mt-1 md:mt-0">Virtual</span>
                                     </button>
-                                    <button onclick="activateTime(2)" class="time-btn bg-white border border-sand-200 hover:border-terracotta-400 p-3 rounded-lg text-left transition-colors flex justify-between" data-idx="2">
-                                        <span class="font-bold text-charcoal">Febrero</span><span class="text-xs text-terracotta-600 uppercase">Acordar</span>
+                                    <button onclick="activateTime(2)" class="time-btn snap-center shrink-0 w-[110px] md:w-full bg-white border border-sand-200 hover:border-terracotta-400 p-2 md:p-3 rounded-lg text-center md:text-left transition-colors flex flex-col md:flex-row justify-center md:justify-between items-center" data-idx="2">
+                                        <span class="font-bold text-charcoal text-xs md:text-base">Febrero</span><span class="text-[9px] md:text-xs text-terracotta-600 uppercase mt-1 md:mt-0">Acordar</span>
                                     </button>
-                                    <button onclick="activateTime(3)" class="time-btn bg-white border border-sand-200 hover:border-terracotta-400 p-3 rounded-lg text-left transition-colors flex justify-between" data-idx="3">
-                                        <span class="font-bold text-charcoal">Marzo</span><span class="text-xs text-terracotta-600 uppercase">Acordar</span>
+                                    <button onclick="activateTime(3)" class="time-btn snap-center shrink-0 w-[110px] md:w-full bg-white border border-sand-200 hover:border-terracotta-400 p-2 md:p-3 rounded-lg text-center md:text-left transition-colors flex flex-col md:flex-row justify-center md:justify-between items-center" data-idx="3">
+                                        <span class="font-bold text-charcoal text-xs md:text-base">Marzo</span><span class="text-[9px] md:text-xs text-terracotta-600 uppercase mt-1 md:mt-0">Acordar</span>
                                     </button>
-                                    <button onclick="activateTime(4)" class="time-btn bg-white border border-sand-200 hover:border-terracotta-400 p-3 rounded-lg text-left transition-colors flex justify-between" data-idx="4">
-                                        <span class="font-bold text-charcoal">Post-Mapeo</span><span class="text-xs text-charcoal-light uppercase">Autónomo</span>
+                                    <button onclick="activateTime(4)" class="time-btn snap-center shrink-0 w-[110px] md:w-full bg-white border border-sand-200 hover:border-terracotta-400 p-2 md:p-3 rounded-lg text-center md:text-left transition-colors flex flex-col md:flex-row justify-center md:justify-between items-center" data-idx="4">
+                                        <span class="font-bold text-charcoal text-xs md:text-base">Post-Mapeo</span><span class="text-[9px] md:text-xs text-charcoal-light uppercase mt-1 md:mt-0">Autónomo</span>
                                     </button>
                                 </div>
-                                <!-- Info Panel -->
-                                <div class="w-2/3 bg-white border border-sand-200 rounded-xl p-8 flex flex-col justify-center transition-opacity min-h-[300px]" id="time-display">
-                                    <div class="text-center opacity-50 text-charcoal-light"><i data-lucide="calendar" class="w-12 h-12 mx-auto mb-4"></i><p>Haz clic en un mes para ver las actividades clave y proyectar agendas.</p></div>
+                                <!-- Display -->
+                                <div class="w-full md:w-2/3 bg-white border border-sand-200 rounded-xl p-5 md:p-8 flex flex-col justify-center transition-opacity min-h-[160px] md:min-h-[300px]" id="time-display">
+                                    <div class="text-center opacity-50 text-charcoal-light"><i data-lucide="calendar" class="w-8 h-8 md:w-12 md:h-12 mx-auto mb-3 md:mb-4"></i><p class="text-xs md:text-base">Toca un mes para ver las actividades</p></div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- SLIDE 14: AGRADECIMIENTOS Y CIERRE (Nueva) -->
-                    <div class="slide bg-olive-700 text-white" id="slide-13">
+                    <!-- SLIDE 15: AGRADECIMIENTOS -->
+                    <div class="slide bg-olive-700 text-white" id="slide-14">
                         <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
-                        <div class="relative h-full flex flex-col justify-center items-center text-center px-16">
-                            <span class="font-sans text-xs tracking-[0.2em] text-sand-300 uppercase font-bold mb-6">Unidos por el territorio</span>
-                            <h2 class="font-serif text-5xl md:text-6xl italic text-white leading-tight mb-6 drop-shadow-md">
+                        <div class="relative h-full flex flex-col justify-center items-center text-center px-6 md:px-16 py-10">
+                            <span class="font-sans text-[10px] md:text-xs tracking-[0.2em] text-sand-300 uppercase font-bold mb-4 md:mb-6">Unidos por el territorio</span>
+                            <h2 class="font-serif text-4xl md:text-6xl italic text-white leading-tight mb-4 md:mb-6 drop-shadow-md">
                                 ¡Muchas gracias!
                             </h2>
-                            <p class="font-sans text-xl text-sand-100 max-w-2xl font-light mb-12">
+                            <p class="font-sans text-sm md:text-xl text-sand-100 max-w-2xl font-light mb-8 md:mb-12">
                                 "Por un mapeo con sentido, por los saberes compartidos y por la paz cotidiana de El Bagre."
                             </p>
-                            <div class="inline-flex items-center space-x-3 px-6 py-2 bg-white/10 rounded-full border border-white/20">
-                                <span class="text-xs text-sand-200 uppercase font-bold tracking-wider">Mesa de trabajo y planeación • Octubre 2026</span>
+                            <div class="inline-flex items-center px-4 md:px-6 py-2 bg-white/10 rounded-full border border-white/20">
+                                <span class="text-[9px] md:text-xs text-sand-200 uppercase font-bold tracking-wider text-center">Mesa de trabajo y planeación • Octubre 2026</span>
                             </div>
                         </div>
                     </div>
@@ -397,22 +636,22 @@
             </div>
 
             <!-- CONTROLES INFERIORES -->
-            <div class="h-16 flex items-center justify-between px-6 bg-white border-t border-sand-200 z-50 shrink-0 shadow-lg">
-                <button type="button" id="btn-toggle-notes" class="flex items-center space-x-2 px-4 py-2 bg-sand-100 hover:bg-sand-200 text-charcoal rounded-md transition-colors text-xs font-bold">
+            <div class="h-14 md:h-16 flex items-center justify-between px-3 md:px-6 bg-white border-t border-sand-200 z-50 shrink-0 shadow-lg">
+                <button type="button" id="btn-toggle-notes" class="flex items-center space-x-2 px-3 md:px-4 py-2 bg-sand-100 hover:bg-sand-200 text-charcoal rounded-md transition-colors text-xs font-bold shrink-0">
                     <i data-lucide="monitor-play" id="sidebarIcon" class="w-4 h-4 text-terracotta-600 pointer-events-none"></i>
-                    <span class="pointer-events-none hidden sm:inline" id="toggle-notes-text">Ocultar Notas</span>
+                    <span class="pointer-events-none hidden md:inline" id="toggle-notes-text">Ocultar Notas</span>
                 </button>
                 
                 <!-- Barra de Progreso -->
-                <div class="flex-grow max-w-md mx-8 flex items-center space-x-4">
-                    <button type="button" id="btn-prev" class="p-1 hover:bg-sand-100 rounded text-charcoal"><i data-lucide="chevron-left" class="w-5 h-5 pointer-events-none"></i></button>
-                    <div class="flex-grow h-1.5 bg-sand-200 rounded-full overflow-hidden">
+                <div class="flex-grow max-w-md mx-3 md:mx-8 flex items-center space-x-1 md:space-x-4">
+                    <button type="button" id="btn-prev" class="p-2 md:p-1 hover:bg-sand-100 rounded text-charcoal"><i data-lucide="chevron-left" class="w-5 h-5 pointer-events-none"></i></button>
+                    <div class="flex-grow h-1.5 bg-sand-200 rounded-full overflow-hidden hidden sm:block">
                         <div id="progress-bar" class="h-full bg-olive-500 transition-all duration-300 w-0"></div>
                     </div>
-                    <button type="button" id="btn-next" class="p-1 hover:bg-sand-100 rounded text-charcoal"><i data-lucide="chevron-right" class="w-5 h-5 pointer-events-none"></i></button>
+                    <button type="button" id="btn-next" class="p-2 md:p-1 hover:bg-sand-100 rounded text-charcoal"><i data-lucide="chevron-right" class="w-5 h-5 pointer-events-none"></i></button>
                 </div>
                 
-                <div class="font-mono text-xs font-bold text-charcoal-light w-12 text-right"><span id="page-num">1</span>/14</div>
+                <div class="font-mono text-[10px] md:text-xs font-bold text-charcoal-light w-8 md:w-12 text-right shrink-0"><span id="page-num">1</span>/15</div>
             </div>
         </main>
     </div>
@@ -422,50 +661,70 @@
             lucide.createIcons();
 
             let currentIndex = 0;
-            const totalSlides = 14;
-            let sidebarOpen = true;
+            const totalSlides = 15;
+            let sidebarOpen = window.innerWidth >= 768; 
+            
+            const sidebar = document.getElementById('notes-sidebar');
+            const btnText = document.getElementById('toggle-notes-text');
+            const icon = document.getElementById('sidebarIcon');
+
+            if (!sidebarOpen && window.innerWidth >= 768) {
+                sidebar.classList.add('md:-ml-96');
+            } else if (!sidebarOpen && window.innerWidth < 768) {
+                sidebar.classList.add('-translate-x-full');
+            } else if (sidebarOpen && window.innerWidth >= 768) {
+                sidebar.classList.remove('md:-ml-96', '-translate-x-full');
+                btnText.innerText = "Ocultar Notas";
+                icon.setAttribute('data-lucide', 'monitor-play');
+            }
 
             const notesDB = [
-                { title: "Bloque 1: Aterrizaje", body: "<strong>Dinámica en círculo (30 mins):</strong> Cada persona tiene hasta 2 minutos para presentarse.<br><br><em>Pregunta:</em> 'Dinos tu nombre, qué haces en El Bagre, y ¿cuáles son tus tres placeres simples favoritos? o ¿qué te hizo sonreír esta última semana?'<br><br><strong>Cierre:</strong> Destacar que nos conectan alegrías cotidianas similares." },
-                { title: "El Ecosistema", body: "Explica rápidamente la alianza.<br><br><strong>Red ECO:</strong> El marco que nos respalda.<br><strong>SEHPAZ:</strong> El liderazgo territorial (los verdaderos protagonistas).<br><strong>Nosotros:</strong> Venimos a acompañar metodológicamente, no a imponer." },
-                { title: "La Inspiración (El Tambo)", body: "Cuenta la historia de Co-inspira brevemente. En El Tambo y el Cauca la comunidad mapeó su propio territorio y de allí nacieron iniciativas sostenibles como la Fundación CreAmos y el SOLE Lab.<br><br><em>Dato:</em> Más adelante hablaremos con Alejandra, quien lideró esto allá." },
-                { title: "La Pregunta Guía", body: "Lee la pregunta en voz alta. <br><br>Explica que el mapeo no es un diagnóstico de tristezas, sino una forma de entender cómo, a pesar de todo, se sostiene la paz en el día a día. Queremos encontrar y potenciar los <em>habilitadores</em>." },
-                { title: "El Juego de los Sistemas", body: "<strong>¡Momento de levantarse! (15 min)</strong><br>Diles: 'Para entender la diferencia entre reloj y nube, vamos a jugar'.<br><br>Haz clic en los botones de la pantalla para mostrar/recordar las reglas.<br><strong>Ronda 1:</strong> A 1 metro de distancia.<br><strong>Ronda 2:</strong> En el medio de dos personas." },
-                { title: "Reflexión del Juego", body: "Pídeles que se sienten. Abre un diálogo corto (5-7 mins).<br><br>Escucha sus ideas y guíalos a la conclusión: en un sistema interconectado, mover un solo proyecto o actor desestabiliza a todo el resto." },
-                { title: "Las dos columnas", body: "Cierre conceptual de la dinámica.<br><br>El enfoque mecánico busca 'la pieza rota' para arreglarla (lineal). El enfoque sistémico asume que todo está conectado (nube). Intervenir en El Bagre es intentar mover una nube." },
-                { title: "Ejemplos Concretos", body: "Muestra la comparativa de los ejemplos del 'Reloj' frente a los de la 'Nube'. Explica que un diagnóstico simple no puede predecir cómo se comporta un sistema en El Bagre. Las reglas de una 'nube' a menudo son invisibles, y para comprenderlas necesitamos la perspectiva interna de la comunidad." },
-                { title: "Transformación Sistémica", body: "Aterriza los conceptos del PDF.<br><br>- El sistema no cambia desde afuera y no lo controlamos.<br>- Pasamos de enfocarnos en problemas a entender las relaciones hoy.<br>- Pasamos de convencer a <strong>comprender y colaborar</strong>.<br>- No traemos soluciones mágicas; aprovechamos lo que el sistema elige conservar." },
-                { title: "Inmersión Interactiva", body: "<strong>Dinámica de grupos (15 min)</strong><br><br>Dile a los 3 grupos que ingresen al QR o enlace. Que exploren y generen 2 preguntas clave.<br><br><em>Nota:</em> Prepara la conexión con Alejandra para las 11:10 a.m. (30 min de llamada)." },
-                { title: "Transparencia: El Alcance", body: "Sé muy claro: Gracias a la Red ECO, nuestro compromiso de acompañamiento técnico presencial llegará hasta la finalización del mapa sistémico (3 viajes).<br><br>La identificación de oportunidades será un ejercicio virtual y autónomo para cada organización." },
-                { title: "Gobernanza y Roles", body: "Asignación de responsabilidades:<br>- <strong>Dayanis:</strong> Enlace local clave.<br>- <strong>Equipo motor (5 pers.):</strong> Voluntarios para reuniones virtuales entre viajes para afinar detalles.<br>- <strong>Mapeadores:</strong> Todos los presentes hoy." },
-                { title: "Cronograma a Confirmar", body: "Haz clic en cada mes de la pantalla para mostrar qué se hará. Pide que tomen nota y saquen agendas para intentar fijar la fecha del Taller de Noviembre y Febrero.<br><br><strong>Cierre:</strong> Agradecimiento profundo a SEHPAZ por abrir el espacio." },
-                { title: "Cierre de la Reunión", body: "Cierre formal, agradecimientos y firma de los acuerdos. Recordar el próximo paso acordado (fecha preliminar de noviembre)." }
+                { title: "Bloque 1: Aterrizaje", body: "<strong>Dinámica en círculo (30 mins):</strong> Cada persona tiene hasta 2 minutos.<br><br><em>Pregunta:</em> 'Dinos tu nombre, qué haces en El Bagre, y ¿cuáles son tus tres placeres simples favoritos? o ¿qué te hizo sonreír esta semana?'<br><br><strong>Cierre:</strong> Nos conectan alegrías cotidianas." },
+                { title: "El Ecosistema", body: "Explica rápidamente la alianza.<br><br><strong>Red ECO:</strong> El marco que nos respalda.<br><strong>SEHPAZ:</strong> El liderazgo territorial.<br><strong>Facilitación:</strong> Alejandra, Ángela y Milton acompañando metodológicamente." },
+                { title: "La Inspiración", body: "Cuenta la historia de Co-inspira brevemente. En El Tambo y el Cauca la comunidad mapeó su territorio y nacieron iniciativas como la Fundación CreAmos y el SOLE Lab.<br><br><em>Dato:</em> Más adelante hablaremos con Alejandra." },
+                { title: "La Pregunta Guía", body: "Lee la pregunta en voz alta. <br><br>Explica que el mapeo no es un diagnóstico de tristezas, sino entender cómo se sostiene la paz en el día a día. Queremos encontrar <em>habilitadores</em>." },
+                { title: "El Juego de los Sistemas", body: "<strong>¡A levantarse! (15 min)</strong><br>Diles: 'Para entender la diferencia entre reloj y nube, vamos a jugar'.<br><br><strong>Ronda 1:</strong> A 1 metro de distancia.<br><strong>Ronda 2:</strong> En el medio de dos personas." },
+                { title: "Reflexión del Juego", body: "Pídeles que se sienten. Abre un diálogo (5-7 mins).<br><br>Guíalos a la conclusión: en un sistema interconectado, mover un actor desestabiliza a todo el resto." },
+                { title: "Las dos columnas", body: "Cierre conceptual de la dinámica.<br><br>El enfoque mecánico busca 'la pieza rota' (lineal). El enfoque sistémico asume que todo está conectado (nube). Intervenir en El Bagre es intentar mover una nube." },
+                { title: "Ejemplos Concretos", body: "Muestra la comparativa de los ejemplos del 'Reloj' frente a los de la 'Nube'. Explica que las reglas de una 'nube' a menudo son invisibles, y necesitamos la perspectiva interna de la comunidad." },
+                { title: "Investigación Acción Sistémica", body: "Explica el ciclo completo:<br>1. <strong>Fila superior (Verde Oliva):</strong> Lo que haremos de forma presencial hasta el Mapeo.<br>2. <strong>Fila inferior derecha (Terracota):</strong> Análisis de oportunidades y rutas con apoyo virtual.<br>3. <strong>Fila inferior izquierda:</strong> Las acciones autónomas de paz que emprenderán en el territorio." },
+                { title: "Transformación Sistémica", body: "Aterriza los conceptos.<br><br>- El sistema no cambia desde afuera.<br>- Pasamos de enfocarnos en problemas a entender las relaciones.<br>- Pasamos de convencer a <strong>colaborar</strong>.<br>- Aprovechamos lo que el sistema elige conservar." },
+                { title: "Inmersión Interactiva", body: "<strong>Dinámica (15 min)</strong><br><br>3 grupos ingresan al QR. Exploran y generan 2 preguntas clave.<br><br><em>Nota:</em> Prepara la conexión con Alejandra para las 11:10 a.m. (30 min)." },
+                { title: "Transparencia: El Alcance", body: "Sé muy claro: Gracias a la Red ECO, nuestro acompañamiento técnico llegará hasta la finalización del mapa sistémico (3 viajes).<br><br>La identificación de oportunidades será virtual y autónoma." },
+                { title: "Gobernanza y Roles", body: "Asignación de responsabilidades:<br>- <strong>Dayanis:</strong> Enlace local.<br>- <strong>Equipo motor (5 pers.):</strong> Voluntarios para reuniones virtuales con Alejandra, Ángela y Milton.<br>- <strong>Mapeadores:</strong> Todos los presentes hoy." },
+                { title: "Cronograma", body: "Haz clic en cada mes para mostrar qué se hará. Pide que saquen agendas para intentar fijar la fecha del Taller de Noviembre y Febrero.<br><br><strong>Cierre:</strong> Agradecimiento a SEHPAZ." },
+                { title: "Cierre de la Reunión", body: "Cierre formal y agradecimientos. Recordar el próximo paso acordado (fecha de noviembre)." }
             ];
 
             const sysDB = {
-                reloj: { title: "Ronda 1: Sistema Mecánico", text: "Elijan mentalmente a <strong>una sola persona</strong> en el salón (no lo digan).<br><br>Al escuchar 'Play', caminen y ubíquense a exactamente <strong>un metro de distancia</strong> (un brazo) de esa persona y mantengan esa distancia en todo momento." },
-                nube: { title: "Ronda 2: Sistema Complejo", text: "Elijan mentalmente a <strong>dos personas</strong> diferentes (en secreto).<br><br>Al escuchar 'Play', su único objetivo es mantenerse ubicados exactamente <strong>en la mitad (equidistante)</strong> de esas dos personas. Si ellas se mueven, reajústense de inmediato." }
+                reloj: { title: "Ronda 1: Mecánico", text: "Elijan a <strong>una sola persona</strong> en el salón.<br><br>Caminen y ubíquense a <strong>un metro</strong> (un brazo) de esa persona en todo momento." },
+                nube: { title: "Ronda 2: Complejo", text: "Elijan a <strong>dos personas</strong> diferentes.<br><br>Manténganse <strong>en la mitad (equidistante)</strong> de esas dos personas. Si se mueven, reajústense." }
             };
 
             const timeDB = [
-                { t: "1. Entrenamiento en narrativas de vida (Noviembre)", d: "Taller presencial de un día y medio en el que capacitaremos al grupo para la recolección activa e historias de vida cotidiana en el territorio." },
-                { t: "2. Seguimiento y campo (Diciembre / Enero)", d: "Acompañamiento autónomo y virtual. Recolección de historias por parte del grupo y sesiones de afinación virtual con el Equipo Motor." },
-                { t: "3. Análisis de fuerzas (Febrero)", d: "Encuentro presencial para leer colectivamente las narrativas e identificar las fuerzas invisibles (habilitadores e inhibidores) que influyen en la paz." },
-                { t: "4. Mapeo sistémico (Marzo)", d: "Último taller presencial para hilar las fuerzas (bucles) y consolidar el mapa físico y su visualización digital en la herramienta Kumu." },
-                { t: "5. Post-Mapeo (Acompañamiento virtual)", d: "Sesiones en línea de apoyo metodológico para que cada organización participante use el mapa y diseñe de forma autónoma sus planes de transformación." }
+                { t: "1. Entrenamiento", d: "Taller presencial de un día y medio para capacitarnos en recolección de historias de vida." },
+                { t: "2. Seguimiento", d: "Recolección de historias por parte del grupo y sesiones virtuales con el Equipo Motor." },
+                { t: "3. Análisis de fuerzas", d: "Encuentro presencial para identificar habilitadores e inhibidores de la paz." },
+                { t: "4. Mapeo sistémico", d: "Último taller presencial para hilar las fuerzas y consolidar el mapa físico y digital." },
+                { t: "5. Post-Mapeo", d: "Sesiones en línea para que cada organización diseñe sus propios planes de transformación." }
             ];
 
             function renderUI() {
                 for(let i = 0; i < totalSlides; i++) {
                     const slide = document.getElementById('slide-' + i);
                     if (slide) {
-                        if (i === currentIndex) slide.classList.add('active');
-                        else slide.classList.remove('active');
+                        if (i === currentIndex) {
+                            slide.classList.add('active');
+                            slide.scrollTop = 0; 
+                        } else {
+                            slide.classList.remove('active');
+                        }
                     }
                 }
 
                 document.getElementById('page-num').innerText = currentIndex + 1;
-                document.getElementById('progress-bar').style.width = `${((currentIndex) / (totalSlides - 1)) * 100}%`;
+                const progressBar = document.getElementById('progress-bar');
+                if (progressBar) progressBar.style.width = `${((currentIndex) / (totalSlides - 1)) * 100}%`;
 
                 const notesContainer = document.getElementById('notes-container');
                 if (notesContainer) {
@@ -473,15 +732,14 @@
                     setTimeout(() => {
                         const data = notesDB[currentIndex];
                         notesContainer.innerHTML = `
-                            <h3 class="font-serif text-xl font-bold text-charcoal mb-4 border-b border-sand-200 pb-2">${data.title}</h3>
-                            <p class="font-sans text-[15px] text-charcoal-light leading-relaxed">${data.body}</p>
+                            <h3 class="font-serif text-lg md:text-xl font-bold text-charcoal mb-3 border-b border-sand-200 pb-2">${data.title}</h3>
+                            <p class="font-sans text-sm md:text-[15px] text-charcoal-light leading-relaxed">${data.body}</p>
                         `;
                         notesContainer.style.opacity = 1;
                     }, 200);
                 }
             }
 
-            // Exponer funciones interactivas a Window para el HTML onClick
             window.activateSysType = function(type) {
                 document.querySelectorAll('.sys-btn').forEach(btn => {
                     if(btn.getAttribute('data-sys') === type) {
@@ -495,7 +753,7 @@
                 const display = document.getElementById('sys-display');
                 display.style.opacity = 0;
                 setTimeout(() => {
-                    display.innerHTML = `<h3 class="font-serif text-3xl text-${type==='reloj'?'terracotta':'olive'}-600 mb-4">${sysDB[type].title}</h3><p class="text-lg text-charcoal-light leading-relaxed">${sysDB[type].text}</p>`;
+                    display.innerHTML = `<h3 class="font-serif text-xl md:text-3xl text-${type==='reloj'?'terracotta':'olive'}-600 mb-2 md:mb-4">${sysDB[type].title}</h3><p class="text-sm md:text-lg text-charcoal-light leading-relaxed">${sysDB[type].text}</p>`;
                     display.classList.replace('bg-sand-50', 'bg-white');
                     display.style.opacity = 1;
                 }, 200);
@@ -512,31 +770,35 @@
                 const display = document.getElementById('time-display');
                 display.style.opacity = 0;
                 setTimeout(() => {
-                    display.innerHTML = `<h3 class="font-serif text-2xl text-olive-700 mb-3">${timeDB[idx].t}</h3><p class="text-charcoal-light text-base md:text-lg leading-relaxed">${timeDB[idx].d}</p>`;
+                    display.innerHTML = `<h3 class="font-serif text-lg md:text-2xl text-olive-700 mb-2">${timeDB[idx].t}</h3><p class="text-charcoal-light text-sm md:text-lg leading-relaxed">${timeDB[idx].d}</p>`;
                     display.style.opacity = 1;
                 }, 200);
             };
 
-            // Controles de Navegación
             document.getElementById('btn-next').addEventListener('click', () => { if (currentIndex < totalSlides - 1) { currentIndex++; renderUI(); } });
             document.getElementById('btn-prev').addEventListener('click', () => { if (currentIndex > 0) { currentIndex--; renderUI(); } });
 
-            document.getElementById('btn-toggle-notes').addEventListener('click', () => {
+            const toggleNotes = () => {
                 sidebarOpen = !sidebarOpen;
-                const sidebar = document.getElementById('notes-sidebar');
-                const btnText = document.getElementById('toggle-notes-text');
-                const icon = document.getElementById('sidebarIcon');
-
                 if (sidebarOpen) {
-                    sidebar.classList.remove('-ml-96', 'hidden');
+                    sidebar.classList.remove('md:-ml-96', '-translate-x-full');
                     btnText.innerText = "Ocultar Notas";
                     icon.setAttribute('data-lucide', 'monitor-play');
                 } else {
-                    sidebar.classList.add('-ml-96');
+                    if (window.innerWidth >= 768) {
+                        sidebar.classList.add('md:-ml-96');
+                    } else {
+                        sidebar.classList.add('-translate-x-full');
+                    }
                     btnText.innerText = "Mostrar Notas";
                     icon.setAttribute('data-lucide', 'monitor-pause');
                 }
                 lucide.createIcons();
+            };
+
+            document.getElementById('btn-toggle-notes').addEventListener('click', toggleNotes);
+            document.getElementById('btn-close-notes-mobile').addEventListener('click', () => {
+                if(sidebarOpen) toggleNotes();
             });
 
             document.addEventListener('keydown', (e) => {
@@ -549,7 +811,6 @@
                 }
             });
 
-            // Cronómetro
             let startTime = Date.now();
             setInterval(() => {
                 let diff = Math.floor((Date.now() - startTime) / 1000);
